@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import sqlite3
+from collections import namedtuple
 from helper_functions import *
 
 class rentalDatabase():
@@ -21,7 +22,8 @@ class rentalDatabase():
 
     def printTenantsByMonth(self, input_date):
         date = dateToTimeStamp(input_date)
-        sql_query = "SELECT tenants.user_id, tenants.name, rent.room_id, rent.paid, tenants.email\
+        sql_query = "SELECT tenants.user_id, tenants.name,\
+                     rent.room_id, rent.paid, tenants.email\
                      FROM rent\
                      INNER JOIN tenants ON tenants.user_id = rent.user_id\
                      WHERE rent.date='{}'\
@@ -30,8 +32,9 @@ class rentalDatabase():
         print("ID\t\tNAME\t\tROOM\t\tPAID\t\tEMAIL")
         print("-----\t\t-----\t\t-----\t\t-----\t\t-----")
         for row in tenants:
-            print ("{}\t|\t{}\t|\t{}\t|\t{}\t|\t{}".format(row[0], str(row[1]), 
-                                             str(row[2]), str(row[3]), str(row[4])))
+            print ("{}\t|\t{}\t|\t{}\t|\t{}\t|\t{}"\
+                    .format(row[0], str(row[1]), 
+                            str(row[2]), str(row[3]), str(row[4])))
         print("")
 
 
@@ -104,18 +107,59 @@ class rentalDatabase():
         self.conn.commit()
 
 
-    def markPaid(self, user_id, input_date):
+    def markPaid(self, user_id, mo_year):
         '''
         sets a tenant as paid
         '''
-
-        date = dateToTimeStamp(input_date) 
+        date = dateToTimeStamp(mo_year) 
         sql_query = "UPDATE rent\
                      SET paid=1\
                      WHERE user_id={}\
                      AND date='{}'".format(user_id, date)
         self.c.execute(sql_query)
         self.conn.commit()
+    
+    def markRecMade(self, user_ids, mo_year):
+        '''
+        takes in a list of user_id and marks them as paid
+        for a specific month
+        '''
+        date = dateToTimeStamp(mo_year) 
+        sql_query = "UPDATE rent\
+                     SET receipt_issued=1\
+                     WHERE user_id IN ({})\
+                     AND date='{}'".format(', '.join([str(uid) for uid in user_ids]), date)
+        self.c.execute(sql_query)
+        self.conn.commit()
+
+    def getOccupiedStatusByMonth(self, mo_year):
+        '''
+        return a list of all of the occupied rooms including the
+        tenant id, tenant names, tenant email,
+        room, room price, rent paid and reciept issued
+        '''
+        date = dateToTimeStamp(mo_year)
+        sql_query = "SELECT tenants.user_id, tenants.name, tenants.email,\
+                     rent.room_id, rooms.price, rent.paid, rent.receipt_issued\
+                     FROM rent\
+                     INNER JOIN tenants\
+                     ON tenants.user_id = rent.user_id\
+                     INNER JOIN rooms\
+                     ON rent.room_id = rooms.room_id\
+                     WHERE rent.date='{}'\
+                     ORDER BY rent.room_id".format(date)
+        tenants = self.conn.execute(sql_query)
+        rentRecords = []
+        RentRecord = namedtuple('RentRecord',
+                                 ['tenant_id',
+                                  'tenant_name',
+                                  'tenant_email',
+                                  'room_id',
+                                  'room_price',
+                                  'rent_paid',
+                                  'receipt_issued'])
+        rentRecords = [RentRecord(*row) for row in tenants]
+        return rentRecords
 
     def __del__(self):
         self.conn.close()
@@ -129,6 +173,7 @@ if __name__ == '__main__':
     #db.printTenantsByMonth('January 2018')
     #db.markPaid(10, 'November 2018')
     #db.printRent()
-    db.getTenantNameById(14)
+    #db.getTenantNameById(14)
     #db.getAvailableRooms('Fall 2018')
+    print(db.getOccupiedStatusByMonth('Fall 2018'))
     db.__del__()

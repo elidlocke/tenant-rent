@@ -1,5 +1,6 @@
 #!/user/bin/python3
 import manage_db
+from receipt_factory import batchGenerateReceipts
 
 class programOption:
     def __init__(self, description, function=None):
@@ -11,33 +12,36 @@ class Program():
         self.db = database
 
     def addTenant(self):
-        name = input('Name [eg. Mary Smith]: ')
-        email = input('Email [eg. mary@gmail.com]: ')
         try:
+            name = input('Name [eg. Mary Smith]: ')
+            email = input('Email [eg. mary@gmail.com]: ')
             self.db.addTenant(name, email)
+            print ("\n... success! Added {} to tenants\n".format(name))
         except:
             print ("Oops, error Adding Tenant to DB")
-        print ("\n... success! Added {} to tenants\n".format(name))
 
     def placeTenant(self):
-        print ("Select the ID of an available tenant: ")
-        self.db.printTenants()
-        user_id = input("user_id to place [eg. 1]: ")
-        term  = input("Term [eg. Fall 2018]: ")
-        name = db.getTenantNameById(user_id)
-        print ("Which room are you placing {} in? ".format(name))
-        self.db.printAvailableRooms(term)
-        room_id = input("Room letter [eg. A]: ")
         try:
+            print ("Select the ID of an available tenant: ")
+            self.db.printTenants()
+            user_id = input("user_id to place [eg. 1]: ")
+            term  = input("Term [eg. Fall 2018]: ")
+            name = db.getTenantNameById(user_id)
+            print ("Which room are you placing {} in? ".format(name))
+            self.db.printAvailableRooms(term)
+            room_id = input("Room letter [eg. A]: ")
             self.db.placeTenant(user_id, room_id, term)
+            print ("\nSUCCESS! Placed {} in {} for the {} term.\n".format(name, room_id, term))
         except:
             print("Oops, error placing tenant.")
-        print ("\nSUCCESS! Placed {} in {} for the {} term.\n".format(name, room_id, term))
 
     def listTenants(self):
-        term = input("Term [eg. Fall 2018]: ")
-        print ("Here are all the tenants for that term: \n")
-        self.db.printTenantsByMonth(term)
+        try:
+            term = input("Term [eg. Fall 2018]: ")
+            print ("Here are all the tenants for that term: \n")
+            self.db.printTenantsByMonth(term)
+        except:
+            print("oops")
 
     def recordRent(self):
         try:
@@ -52,8 +56,26 @@ class Program():
             print("Oops, error recording rent payment!")
 
     def generateReciepts(self):
-        print("... generating reciepts for all months paid ... ")
-        
+        try:
+            mo_year = input("Month [eg. January 2018]: ")
+            tenantList = batchGenerateReceipts(self.db, mo_year)
+            if len(tenantList) == 0:
+                print("\nAll receipts for {} have already been made\n".format(mo_year.lower()))
+                return
+            tenantIDs = [n[0] for n in tenantList]
+            tenantNames = [n[1] for n in tenantList]
+            printFriendlyNames = ""
+            if len(tenantNames) > 2:
+                printFriendlyNames = ', '.join(tenantNames[:-1]) + ' and ' + str(tenantNames[-1])
+            elif len(tenantNames)==2:
+                printFriendlyNames = ' and '.join(tenantNames)
+            elif len(tenantNames)==1:
+                printFriendlyNames =  tenantNames[0]
+            self.db.markRecMade(tenantIDs, mo_year)
+            print("SUCCESS. Generated {} receipts for {}"\
+                    .format(mo_year.lower(), printFriendlyNames))
+       except:
+           print("Oops had an issue making those receipts")
 
     def sendRent(self):
         print("Choose M - month or U - user_id")
@@ -64,8 +86,8 @@ class Program():
             '2': programOption("place a tenant", self.placeTenant),
             '3': programOption("list tenants", self.listTenants),
             '4': programOption("record rent payments", self.recordRent),
-            '5': programOption("generate rent reciepts", self.generateReciepts),
-            '6': programOption("send rent reciepts", self.sendRent),
+            '5': programOption("generate rent receipts", self.generateReciepts),
+            '6': programOption("send rent receipts", self.sendRent),
             '7': programOption("quit")
         }
         return options

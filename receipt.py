@@ -1,9 +1,7 @@
-from reportlab.pdfgen import canvas
-from reportlab.platypus import SimpleDocTemplate, Paragraph,\
-Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.platypus.flowables import HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import mm, inch
+from reportlab.lib.units import inch
 
 
 class receipt():
@@ -60,7 +58,7 @@ class receipt():
 
     def addHeader(self):
         h1 = Paragraph("<b>{}</b>".format(self.propertyName), self.style['receiptTop'])
-        h2 = Paragraph("Rental Reciept for {}".format(self.month),
+        h2 = Paragraph("Rental Reciept for {}".format(self.month.capitalize()),
                         self.style['receiptContent'])
         hr = HRFlowable(width="100%")
         return [h1, h2, Spacer(1, 4), hr, Spacer(1, 10)]
