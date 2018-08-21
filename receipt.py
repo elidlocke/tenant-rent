@@ -3,7 +3,6 @@ from reportlab.platypus.flowables import HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 
-
 class receipt():
     def __init__(self,
                  propertyName,
@@ -79,7 +78,7 @@ class receipt():
     def addFooter(self):
         footer = self.makeParagraph("For all questions contact {} at {}"\
                                 .format(self.landlordName,
-                                        self.phone), 
+                                        self.phone),
                                         'receiptContent')
         im = Image(self.signature, 1*inch, 0.45*inch)
         im.hAlign = 'LEFT'

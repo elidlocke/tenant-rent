@@ -111,20 +111,20 @@ class rentalDatabase():
         '''
         sets a tenant as paid
         '''
-        date = dateToTimeStamp(mo_year) 
+        date = dateToTimeStamp(mo_year)
         sql_query = "UPDATE rent\
                      SET paid=1\
                      WHERE user_id={}\
                      AND date='{}'".format(user_id, date)
         self.c.execute(sql_query)
         self.conn.commit()
-    
+
     def markRecMade(self, user_ids, mo_year):
         '''
         takes in a list of user_id and marks them as paid
         for a specific month
         '''
-        date = dateToTimeStamp(mo_year) 
+        date = dateToTimeStamp(mo_year)
         sql_query = "UPDATE rent\
                      SET receipt_issued=1\
                      WHERE user_id IN ({})\
