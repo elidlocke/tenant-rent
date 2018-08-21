@@ -1,6 +1,9 @@
-#!/user/bin/python3
+#!/usr/bin/python3
+from collections import OrderedDict
 import manage_db
 from receipt_factory import batchGenerateReceipts
+from helper_functions import concatStrings
+from send_email import tenantEmail
 
 class programOption:
     def __init__(self, description, function=None):
@@ -11,14 +14,20 @@ class Program():
     def __init__(self, database):
         self.db = database
 
+    def putErr(self, message):
+        print("\n ERROR: {} Please try again!\n".format(message))
+    
+    def putSuccess(self, message):
+        print("\n SUCCESS: {}\n".format(message))
+
     def addTenant(self):
         try:
             name = input('Name [eg. Mary Smith]: ')
             email = input('Email [eg. mary@gmail.com]: ')
             self.db.addTenant(name, email)
-            print ("\n... success! Added {} to tenants\n".format(name))
+            self.putSuccess("Added {} to tenants".format(name))
         except:
-            print ("Oops, error Adding Tenant to DB")
+            self.putErr("Couldn't add that tenant.")
 
     def placeTenant(self):
         try:
@@ -31,9 +40,10 @@ class Program():
             self.db.printAvailableRooms(term)
             room_id = input("Room letter [eg. A]: ")
             self.db.placeTenant(user_id, room_id, term)
-            print ("\nSUCCESS! Placed {} in {} for the {} term.\n".format(name, room_id, term))
+            self.putSuccess("Placed {} in {} for the {} term."\
+                    .format(name, room_id, term))
         except:
-            print("Oops, error placing tenant.")
+            self.putErr("Wasn't able to place that tenant there.")
 
     def listTenants(self):
         try:
@@ -41,7 +51,7 @@ class Program():
             print ("Here are all the tenants for that term: \n")
             self.db.printTenantsByMonth(term)
         except:
-            print("oops")
+            self.putErr("Wasn't able to find any tenants to list")
 
     def recordRent(self):
         try:
@@ -51,37 +61,45 @@ class Program():
             user_id = input("user_id to mark as paid [eg. 1]: ")
             name = db.getTenantNameById(user_id)
             self.db.markPaid(user_id, month)
-            print ("Success! Recorded {} as paid for {}".format(name, month))
+            self.putSuccess("Recorded {} as paid for {}".format(name, month))
         except:
-            print("Oops, error recording rent payment!")
+            self.putErr("Didn't properly record that payment.")
 
     def generateReciepts(self):
         try:
             mo_year = input("Month [eg. January 2018]: ")
             tenantList = batchGenerateReceipts(self.db, mo_year)
             if len(tenantList) == 0:
-                print("\nAll receipts for {} have already been made\n".format(mo_year.lower()))
+                print("\nAll receipts for {} have already been made\n"\
+                        .format(mo_year.lower()))
                 return
             tenantIDs = [n[0] for n in tenantList]
             tenantNames = [n[1] for n in tenantList]
-            printFriendlyNames = ""
-            if len(tenantNames) > 2:
-                printFriendlyNames = ', '.join(tenantNames[:-1]) + ' and ' + str(tenantNames[-1])
-            elif len(tenantNames)==2:
-                printFriendlyNames = ' and '.join(tenantNames)
-            elif len(tenantNames)==1:
-                printFriendlyNames =  tenantNames[0]
             self.db.markRecMade(tenantIDs, mo_year)
-            print("SUCCESS. Generated {} receipts for {}"\
-                    .format(mo_year.lower(), printFriendlyNames))
-       except:
-           print("Oops had an issue making those receipts")
+            printFriendlyNames = concatStrings(tenantNames)
+            self.putSuccess("Generated {} receipts for {}"\
+                    .format(mo_year.capitalize(), printFriendlyNames))
+        except:
+            self.putErr("Issue generating receipt.")
 
     def sendRent(self):
-        print("Choose M - month or U - user_id")
+        try:
+            records = self.db.getSetReceiptsToSend()
+            people_emailed = []
+            if len(records) == 0:
+                print("All receipts have aleady been sent")
+                return
+            for record in records:
+                e = tenantEmail(record)
+                e.send()
+                people_emailed.append(record.tenant_name)
+            printFriendlyNames = concatStrings(people_emailed)
+            self.putSuccess("Sent new receipts to {}".format(printFriendlyNames))
+        except:
+            self.putErr("Wasn't able to send those emails")
 
     def createProgramOptions(self):
-        options = {
+        options = OrderedDict({
             '1': programOption("add a new tenant", self.addTenant),
             '2': programOption("place a tenant", self.placeTenant),
             '3': programOption("list tenants", self.listTenants),
@@ -89,9 +107,8 @@ class Program():
             '5': programOption("generate rent receipts", self.generateReciepts),
             '6': programOption("send rent receipts", self.sendRent),
             '7': programOption("quit")
-        }
+        })
         return options
-        
 
     def runProgram(self):
         programOptions = self.createProgramOptions()

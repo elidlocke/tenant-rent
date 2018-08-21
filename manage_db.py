@@ -132,6 +132,22 @@ class rentalDatabase():
         self.c.execute(sql_query)
         self.conn.commit()
 
+    def getRentRecords(self, sql_query):
+        tenants = self.conn.execute(sql_query)
+        rentRecords = []
+        RentRecord = namedtuple('RentRecord',
+                                 ['tenant_id',
+                                  'tenant_name',
+                                  'tenant_email',
+                                  'room_id',
+                                  'date',
+                                  'room_price',
+                                  'rent_paid',
+                                  'receipt_issued'])
+        rentRecords = [RentRecord(*row) for row in tenants]
+        return rentRecords
+
+
     def getOccupiedStatusByMonth(self, mo_year):
         '''
         return a list of all of the occupied rooms including the
@@ -140,7 +156,8 @@ class rentalDatabase():
         '''
         date = dateToTimeStamp(mo_year)
         sql_query = "SELECT tenants.user_id, tenants.name, tenants.email,\
-                     rent.room_id, rooms.price, rent.paid, rent.receipt_issued\
+                     rent.room_id, rent.date, rooms.price, rent.paid,\
+                     rent.receipt_issued\
                      FROM rent\
                      INNER JOIN tenants\
                      ON tenants.user_id = rent.user_id\
@@ -148,18 +165,27 @@ class rentalDatabase():
                      ON rent.room_id = rooms.room_id\
                      WHERE rent.date='{}'\
                      ORDER BY rent.room_id".format(date)
-        tenants = self.conn.execute(sql_query)
-        rentRecords = []
-        RentRecord = namedtuple('RentRecord',
-                                 ['tenant_id',
-                                  'tenant_name',
-                                  'tenant_email',
-                                  'room_id',
-                                  'room_price',
-                                  'rent_paid',
-                                  'receipt_issued'])
-        rentRecords = [RentRecord(*row) for row in tenants]
-        return rentRecords
+        return self.getRentRecords(sql_query)
+
+    def getSetReceiptsToSend(self):
+        sql_query = "SELECT tenants.user_id, tenants.name, tenants.email,\
+                     rent.room_id, rent.date, rooms.price, rent.paid,\
+                     rent.receipt_issued\
+                     FROM rent\
+                     INNER JOIN tenants\
+                     ON tenants.user_id = rent.user_id\
+                     INNER JOIN rooms\
+                     ON rent.room_id = rooms.room_id\
+                     WHERE rent.receipt_issued=1 AND rent.paid=1\
+                     AND rent.receipt_sent=0"
+        recordsToSend = self.getRentRecords(sql_query)
+
+        sql_update_query = "UPDATE rent\
+                     SET receipt_sent=1\
+                     WHERE paid=1 AND receipt_issued=1"
+        self.c.execute(sql_update_query)
+        self.conn.commit()
+        return (recordsToSend)
 
     def __del__(self):
         self.conn.close()
@@ -175,5 +201,8 @@ if __name__ == '__main__':
     #db.printRent()
     #db.getTenantNameById(14)
     #db.getAvailableRooms('Fall 2018')
-    print(db.getOccupiedStatusByMonth('Fall 2018'))
+    #print(db.getOccupiedStatusByMonth('Fall 2018'))
+    for record in db.getSetReceiptsToSend():
+        print (record)
+    #print(db.getSetReceiptsToSend())
     db.__del__()

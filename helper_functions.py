@@ -13,6 +13,20 @@ def dateToTimeStamp(mm_yyyy):
     date = "{}-{}-01 00:00:00".format(date_info[1], monthToNumStr(date_info[0].lower()))
     return date
 
+def timeStampToDate(yyyy_mm_dd_etc):
+    '''
+    Convert a string timestamp (2018-12-01 00:00:00) to a string
+    with the month name and date
+    '''
+    month_dict = {'01': 'january', '02': 'february', '03': 'march',
+                  '04': 'april', '05':'may', '06': 'june', '07': 'july',
+                  '08': 'august', '09': 'september', '10': 'october',
+                  '11': 'november', '12': 'december'}
+    month = month_dict[yyyy_mm_dd_etc[5:7]].capitalize()
+    year = yyyy_mm_dd_etc[:4]
+    timeString = "{} {}".format(month, year)
+    return timeString
+
 def termLookup(term):
     '''
     Take in a term, eg. winter 2019 and return dates for the four months
@@ -29,3 +43,16 @@ def termLookup(term):
                 term_dict[term_info[0].lower()][i])
         dates.append(date)
     return dates
+
+def concatStrings(words):
+    '''
+    Format some strings nicely for printing
+    '''
+    printWords = None
+    if len(words) > 2:
+        printWords = ', '.join(words[:-1]) + ' and ' + str(words[-1])
+    elif len(words)==2:
+        printWords = ' and '.join(words)
+    elif len(words)==1:
+        printWords = words[0]
+    return printWords
