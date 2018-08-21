@@ -6,7 +6,7 @@ from helper_functions import *
 
 class rentalDatabase():
     def __init__(self):
-        self.conn = sqlite3.connect('QuarrieTenants.db')
+        self.conn = sqlite3.connect('QuarrieRental.db')
         self.c = self.conn.cursor()
 
     def printTenants(self):
