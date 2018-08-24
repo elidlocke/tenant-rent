@@ -23,6 +23,14 @@ Lastly, if you want to include a signature on the rental receipts, you will crea
 
 To run the program, simply type `python3 launch_program.py`
 
+## Testing
+
+The tests live in the 'tests' folder. To run all the test, from the home directory run:
+`python3 -m unittest discover -s tests`
+
+or to run a specific test file:
+`python3 -m unittest tests.[filename] -v`
+
 ## Built With
 
 * [Python3](https://www.python.org/downloads/)

@@ -98,6 +98,11 @@ class Program():
         except:
             self.putErr("Wasn't able to send those emails")
 
+
+    '''
+    Move this to one function outside of class that is 'run program'
+    '''
+
     def createProgramOptions(self):
         options = OrderedDict({
             '1': programOption("add a new tenant", self.addTenant),
@@ -124,6 +129,10 @@ class Program():
                 break ;
             else:
                 programOptions[selection].function()
+
+'''
+this is the only main i am allowed to keep !!
+'''
 
 if __name__ == "__main__":
     db = manage_db.rentalDatabase()

@@ -1,16 +1,25 @@
 from manage_db import rentalDatabase
 from receipt import receipt
 
+'''
+move this to a json file config.json file and then call it
+from config.py which opens json and returns the dict below v
+
+pass the whole config file into reciept instead of saving the
+seperate params.
+'''
+
 buildingInfo = {
     "name": "Quarrie House",
     "address": ["54 Grand Ave N",
-           "Cambridge, ON, Canada",
-           "N1S 2K9"],
+                "Cambridge, ON, Canada",
+                "N1S 2K9"],
     "company": "2535057 Ontario Inc",
     "landlord": "Ben Locke",
     "phone": "519 721-2776",
     "signature": "./resources/signature.png"
 }
+
 
 def batchGenerateReceipts(db, mo_year):
     records = db.getOccupiedStatusByMonth(mo_year)
@@ -29,6 +38,11 @@ def batchGenerateReceipts(db, mo_year):
             r.createPDF()
             tenantReceiptList.append((record.tenant_id, record.tenant_name))
     return (tenantReceiptList)
+
+
+'''
+remove mains and create simple tests
+'''
 
 if __name__ == '__main__':
     db = rentalDatabase()

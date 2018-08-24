@@ -1,7 +1,7 @@
 # Project Specific Files
-resources/signature.png
-QuarrieTenants.db
-receipts/*
+app/database/QuarrieTenants.db
+app/resources/signature.png
+app/receipts/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
