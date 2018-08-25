@@ -1,10 +1,10 @@
 import smtplib
+import utils
 
 from os import environ
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-from app.utils import timeStampToDate
 from collections import namedtuple
 
 class tenantEmail():
@@ -27,37 +27,32 @@ class tenantEmail():
         Returns:
             str: email subject
         """
-        if self.rentRecord.rent_paid is True:
-            subjectText = "Rent Receipt"
-        else:
-            subjectText = "Rent Reminder"
-        return ("{} {}".format(timeStampToDate(self.rentRecord.date),
-                               subjectText))
+        subjectText = "Rent Receipt"
+        return ("{} {}"
+                .format(
+                    utils.timeStampToDate(
+                        self.rentRecord.date), subjectText
+                    )
+                )
 
     def _createMessage(self):
         """ Create the informantion for the message itself """
         self.message['From'] = self.senderEmail
         self.message['To'] = str(self.rentRecord.tenant_email)
         self.message['Subject'] = self._createSubject()
-        if self.rentRecord.rent_paid is True:
-            bodyText = "<html>Hi {},\
-                       <br>Attached is your receipt for {}</html>"\
-                       .format(self.rentRecord.tenant_name.title(),
-                               timeStampToDate(self.rentRecord.date))
-        else:
-            bodyText = "<html>Hi {}, Your rent for {} is due.\
-            Please provide us with a cheque or e-transfer for {} ASAP. </html>"\
-            .format(self.rentRecord.tenant_name.title(),
-                    timeStampToDate(self.rentRecord.date),
-                    self.rentRecord.room_price)
+        bodyText = "<html>Hi {},\
+                   <br>Attached is your receipt for {}</html>"\
+                   .format(self.rentRecord.tenant_name.title(),
+                           utils.timeStampToDate(self.rentRecord.date))
         self.message.attach(MIMEText(bodyText, 'html'))
 
     def _attachPDF(self):
         """ Attach the PDF receipt to the message """
-        filepath = "./receipts/receipt-{}-{}.pdf"\
+        filepath = "./app/receipts/receipt-{}-{}.pdf"\
             .format(
                 self.rentRecord.tenant_name.replace(" ", "-").lower(),
-                timeStampToDate(self.rentRecord.date).replace(" ", "-").lower()
+                utils.timeStampToDate(self.rentRecord.date)
+                .replace(" ", "-").lower()
             )
         fp = open(filepath, 'rb')
         att = MIMEApplication(fp.read(), _subtype="pdf")
@@ -68,16 +63,16 @@ class tenantEmail():
         self.message.attach(att)
 
     def send(self):
-        self.createSubject()
-        self.createMessage()
-        if self.rentRecord.rent_paid is True:
-            self.attachPDF()
+        self._createSubject()
+        self._createMessage()
+        self._attachPDF()
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.connect('smtp.gmail.com', 587)
         server.starttls()
         server.login(self.senderEmail, self.senderPass)
         server.send_message(self.message)
         server.quit()
+
 
 def sendEmails(db):
     sql_query = """SELECT tenants.name, tenants.email,
@@ -101,6 +96,8 @@ def sendEmails(db):
         e = tenantEmail(record)
         e.send()
         peopleEmailed.append(record.tenant_name)
-    update_sql = "UPDATE rent SET receipt_sent = 1"
+    update_sql = """UPDATE rent
+                 SET receipt_sent = 1
+                 WHERE receipt_issued = 1"""
     db.updateQuery(update_sql)
-    return (peopleEmailed)
+    return (list(set(peopleEmailed)))

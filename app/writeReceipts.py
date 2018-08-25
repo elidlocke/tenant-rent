@@ -1,3 +1,5 @@
+import utils
+
 from json import loads
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.platypus.flowables import HRFlowable
@@ -103,10 +105,10 @@ class Receipt():
 
     def createPDF(self):
         """ Builds a story and creates a PDF File """
-
+        monthStr = utils.timeStampToDate(self.month)
         filename = "./app/receipts/receipt-{}-{}.pdf".format(
             self.tenantName.replace(" ", "-").lower(),
-            self.month.replace(" ", "-").lower())
+            monthStr.replace(" ", "-").lower())
         story = []
         doc = SimpleDocTemplate(
             filename,
@@ -130,14 +132,13 @@ def writeReceipts(db):
                 INNER JOIN rooms ON rent.room_id = rooms.room_id
                 WHERE rent.paid = 1 AND rent.receipt_issued = 0"""
     records = db.getQuery(sql_query)
-    rental_fp = "app/resources/rental.json"
+    rental_fp = "./app/resources/rental.json"
     with open(rental_fp, 'r') as f:
         rentalInfo = loads(f.read())
     f.close()
     tenantNames = []
     for record in records:
         tenantNames.append(record[0])
-        print(record)
         r = Receipt(rentalInfo,
                     room_id=record[1],
                     month=record[2],
@@ -145,6 +146,7 @@ def writeReceipts(db):
                     tenantName=record[0])
         r.createPDF()
     update_sql = """UPDATE rent
-    SET receipt_issued = 1"""
+                 SET receipt_issued = 1
+                 WHERE paid = 1"""
     db.updateQuery(update_sql)
-    return (tenantNames)
+    return (list(set(tenantNames)))

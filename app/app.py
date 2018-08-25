@@ -1,17 +1,11 @@
 #!/usr/bin/python3
-import app.utils as utils
-import app.rentalDatabase as rentalDatabase
+import sys
+import utils
 
 from collections import OrderedDict
+from rentalDatabase import rentalDatabase
 from writeReceipts import writeReceipts
-from app.tenantEmail import sendEmails
-
-'''
-class programOption:
-    def __init__(self, description, function=None):
-        self.description = description.upper()
-        self.function = function
-'''
+from tenantEmail import sendEmails
 
 
 class Program():
@@ -50,8 +44,8 @@ class Program():
                     WHERE rooms.rentable = 1
                     AND rooms.room_id not in (
                         SELECT room_id from rent
-                        WHERE date='{}'""").format(timestamp)
-            print(', '.join(rooms))
+                        WHERE date='{}')""".format(timestamp))
+            print(', '.join([item[0] for item in rooms]))
             room_id = input("Room letter [eg. A]: ")
             self.db.placeTenant(user_id, room_id, term)
             self.putSuccess("Placed {} in {} for the {} term."
@@ -66,13 +60,13 @@ class Program():
             print("Here are all the tenants for that term: \n")
             self.db.printQuery(
                 """ SELECT tenants.user_id, tenants.name,
-                rent.room_id, rent.paid, tenants.email
+                rent.room_id, tenants.email
                 FROM rent
                 INNER JOIN tenants
                 ON tenants.user_id = rent.user_id
                 WHERE rent.date='{}'
                 ORDER BY rent.room_id
-                """).format(timestamp)
+                """.format(timestamp))
         except BaseException:
             self.putErr("Wasn't able to find any tenants to list")
 
@@ -81,7 +75,7 @@ class Program():
             month = input("Month [eg. January 2018]: ")
             print("Here are all the tenants for that month: \n")
             timestamp = utils.dateToTimeStamp(month)
-            self.db.printQuery(
+            options = self.db.printQuery(
                 """ SELECT tenants.user_id, tenants.name,
                 rent.room_id, rent.paid
                 FROM rent
@@ -89,7 +83,9 @@ class Program():
                 ON tenants.user_id = rent.user_id
                 WHERE rent.date='{}'
                 ORDER BY rent.room_id
-                """).format(timestamp)
+                """.format(timestamp))
+            if options.empty:
+                raise BaseException()
             user_id = input("user_id to mark as paid [eg. 1]: ")
             name = db.getTenantNameById(user_id)
             update_sql = """UPDATE rent
@@ -101,7 +97,7 @@ class Program():
             self.putSuccess("Recorded {} as paid for {}"
                             .format(name, month))
         except BaseException:
-            self.putErr("Didn't properly record that payment.")
+            self.putErr("Wasn't able to record that rent payment.")
 
     def generateReciepts(self):
         try:
@@ -125,41 +121,38 @@ class Program():
                 self.putSuccess(
                     "Sent new receipts to {}".format(printFriendlyNames))
         except BaseException:
-            self.putErr("Wasn't able to send those emails")
+            self.putErr("Wasn't able to send those emails."
+                        " Did you set the env variables?")
 
-    '''
-    Move this to one function outside of class that is 'run program'
-    '''
+    def exit(self):
+        print("You chose to quit the program. Goodbye.")
+        sys.exit()
 
-    def createProgramOptions(self):
-        options = OrderedDict({
-            '1': programOption("add a new tenant", self.addTenant),
-            '2': programOption("place a tenant", self.placeTenant),
-            '3': programOption("list tenants", self.listTenants),
-            '4': programOption("record rent payments", self.recordRent),
-            '5': programOption("generate rent receipts", self.generateReciepts),
-            '6': programOption("send rent receipts", self.sendRent),
-            '7': programOption("quit")
-        })
-        return options
 
-    def runProgram(self):
-        programOptions = self.createProgramOptions()
-        while (1):
-            print("*********************************\n" +
-                  "*    QUARRIE HOUSE RENT TIME    *\n" +
-                  "*********************************\n")
-            for key in programOptions:
-                print("{} - {}".format(key, programOptions[key].description))
-            selection = input('choose an option: ')
-            if programOptions[selection].description == "QUIT":
-                print("You chose to quit the program. Goodbye.")
-                break
-            else:
-                programOptions[selection].function()
+def runProgram(program):
+    programOptions = OrderedDict({
+        '1': ("add a new tenant", program.addTenant),
+        '2': ("place a tenant", program.placeTenant),
+        '3': ("list tenants", program.listTenants),
+        '4': ("record rent payments", program.recordRent),
+        '5': ("generate rent receipts", program.generateReciepts),
+        '6': ("send rent receipts", program.sendRent),
+        '7': ("quit", program.exit)
+    })
+    while (1):
+        print("*********************************\n" +
+              "*    QUARRIE HOUSE RENT TIME    *\n" +
+              "*********************************\n")
+        for key in programOptions:
+            print("{} - {}".format(key, programOptions[key][0]))
+        selection = input('choose an option: ')
+        #try:
+        programOptions[selection][1]()
+        #except BaseException:
+        #    print("\nEnter a valid number\n")
 
 
 if __name__ == "__main__":
     db = rentalDatabase()
     p = Program(db)
-    p.runProgram()
+    runProgram(p)

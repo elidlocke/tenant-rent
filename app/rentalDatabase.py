@@ -1,15 +1,13 @@
 #!/usr/bin/python3
 
 import sqlite3
-import app.utils as utils
+import utils
 import pandas as pd
-
-from collections import namedtuple
 
 
 class rentalDatabase():
     def __init__(self):
-        self.conn = sqlite3.connect('app/database/QuarrieRental.db')
+        self.conn = sqlite3.connect('./app/database/QuarrieRental.db')
         self.c = self.conn.cursor()
 
     def printQuery(self, sql_query):
@@ -17,7 +15,13 @@ class rentalDatabase():
         df = pd.read_sql_query(sql_query,
                                self.conn,
                                index_col=None)
-        print(df.to_string(index=False))
+        if not df.empty:
+            print(df.to_string(index=False))
+        else:
+            print("No items found")
+            return(None)
+        print("")
+        return (df)
 
     def getQuery(self, sql_query):
         result = self.conn.execute(sql_query)
@@ -43,7 +47,7 @@ class rentalDatabase():
         dates = utils.termLookup(term)
         for i in range(0, 4):
             date = dates[i]
-            sql_query = """"INSERT INTO
+            sql_query = """INSERT INTO
                         rent (user_id, room_id, date, paid)
                         VALUES({}, '{}', '{}', {})"""\
                         .format(user_id, room_id, date, 0)
