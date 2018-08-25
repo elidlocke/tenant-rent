@@ -3,13 +3,15 @@ import os
 
 from json import loads
 from pathlib import Path
-from app.writeReceipts import Receipt
+from app.rentalDatabase import rentalDatabase
+from app.writeReceipts import Receipt, writeReceipts
 
 
 class TestWriteReceipts(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.db = rentalDatabase()
         file_path = 'app/resources/rental.json'
         with open(file_path, 'r') as f:
             rentalInfo = loads(f.read())
@@ -24,6 +26,3 @@ class TestWriteReceipts(unittest.TestCase):
         self.assertEqual(testPath.is_file(), True)
         if os.path.exists(testPath):
             os.remove(testPath)
-
-    def test_writeReceipts(self):
-        pass
