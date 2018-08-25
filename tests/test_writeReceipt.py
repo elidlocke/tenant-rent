@@ -4,7 +4,7 @@ import os
 from json import loads
 from pathlib import Path
 from app.rentalDatabase import rentalDatabase
-from app.writeReceipts import Receipt, writeReceipts
+from app.writeReceipts import Receipt
 
 
 class TestWriteReceipts(unittest.TestCase):
@@ -16,8 +16,7 @@ class TestWriteReceipts(unittest.TestCase):
         with open(file_path, 'r') as f:
             rentalInfo = loads(f.read())
         f.close()
-        print(rentalInfo['landlord'])
-        cls.r = Receipt(rentalInfo, 'February 1000',
+        cls.r = Receipt(rentalInfo, 'A', '1000-02-01 00:00:00',
                         595, 'Joe Future')
 
     def test_writeReceipt(self):

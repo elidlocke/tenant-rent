@@ -28,6 +28,3 @@ class TestRentalDatabase(unittest.TestCase):
             WHERE rooms.rentable = 1""")
         available_rooms = ', '.join([item[0] for item in list(result)])
         self.assertEqual(available_rooms, 'A, D, E, F, G, H, I, J, K')
-
-    def test_placeTenant(self):
-        pass
