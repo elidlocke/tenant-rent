@@ -1,11 +1,12 @@
 import smtplib
-import utils
 
+from .utility import timeStampToDate
 from os import environ
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from collections import namedtuple
+
 
 class tenantEmail():
     """ Compose an email with a rent reciept or rent reminder for a tenant
@@ -30,7 +31,7 @@ class tenantEmail():
         subjectText = "Rent Receipt"
         return ("{} {}"
                 .format(
-                    utils.timeStampToDate(
+                    timeStampToDate(
                         self.rentRecord.date), subjectText
                     )
                 )
@@ -43,7 +44,7 @@ class tenantEmail():
         bodyText = "<html>Hi {},\
                    <br>Attached is your receipt for {}</html>"\
                    .format(self.rentRecord.tenant_name.title(),
-                           utils.timeStampToDate(self.rentRecord.date))
+                           timeStampToDate(self.rentRecord.date))
         self.message.attach(MIMEText(bodyText, 'html'))
 
     def _attachPDF(self):
@@ -51,7 +52,7 @@ class tenantEmail():
         filepath = "./app/receipts/receipt-{}-{}.pdf"\
             .format(
                 self.rentRecord.tenant_name.replace(" ", "-").lower(),
-                utils.timeStampToDate(self.rentRecord.date)
+                timeStampToDate(self.rentRecord.date)
                 .replace(" ", "-").lower()
             )
         fp = open(filepath, 'rb')

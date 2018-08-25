@@ -1,5 +1,4 @@
-import utils
-
+from .utility import timeStampToDate
 from json import loads
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.platypus.flowables import HRFlowable
@@ -105,7 +104,7 @@ class Receipt():
 
     def createPDF(self):
         """ Builds a story and creates a PDF File """
-        monthStr = utils.timeStampToDate(self.month)
+        monthStr = timeStampToDate(self.month)
         filename = "./app/receipts/receipt-{}-{}.pdf".format(
             self.tenantName.replace(" ", "-").lower(),
             monthStr.replace(" ", "-").lower())

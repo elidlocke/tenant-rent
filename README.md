@@ -21,7 +21,7 @@ Lastly, if you want to include a signature on the rental receipts, you will crea
 
 ## Running the Program
 
-To run the program, simply type `python3 app/app.py` from the root directory.
+To run the program, simply type `python3 -m app.main` from the root directory.
 
 ## Testing
 

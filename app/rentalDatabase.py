@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 import sqlite3
-import utils
+
+from .utility import termLookup
 import pandas as pd
 
 
@@ -44,7 +45,7 @@ class rentalDatabase():
         self.conn.commit()
 
     def placeTenant(self, user_id, room_id, term):
-        dates = utils.termLookup(term)
+        dates = termLookup(term)
         for i in range(0, 4):
             date = dates[i]
             sql_query = """INSERT INTO
