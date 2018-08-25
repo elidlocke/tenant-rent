@@ -5,7 +5,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from app.utils import timeStampToDate
-
+from collections import namedtuple
 
 class tenantEmail():
     """ Compose an email with a rent reciept or rent reminder for a tenant
@@ -78,3 +78,29 @@ class tenantEmail():
         server.login(self.senderEmail, self.senderPass)
         server.send_message(self.message)
         server.quit()
+
+def sendEmails(db):
+    sql_query = """SELECT tenants.name, tenants.email,
+                rent.date, rooms.price
+                FROM rent
+                INNER JOIN tenants
+                ON rent.user_id = tenants.user_id
+                INNER JOIN rooms
+                ON rent.room_id = rooms.room_id
+                WHERE rent.receipt_issued = 1 AND rent.paid = 1
+                AND rent.receipt_sent = 0"""
+    result = db.getQuery(sql_query)
+    RentRecord = namedtuple('RentRecord',
+                            ['tenant_name',
+                             'tenant_email',
+                             'date',
+                             'room_price'])
+    rentRecords = [RentRecord(*row) for row in result]
+    peopleEmailed = []
+    for record in rentRecords:
+        e = tenantEmail(record)
+        e.send()
+        peopleEmailed.append(record.tenant_name)
+    update_sql = "UPDATE rent SET receipt_sent = 1"
+    db.updateQuery(update_sql)
+    return (peopleEmailed)

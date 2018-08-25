@@ -3,7 +3,8 @@ import app.utils as utils
 import app.rentalDatabase as rentalDatabase
 
 from collections import OrderedDict
-from app.tenantEmail import tenantEmail
+from writeReceipts import writeReceipts
+from app.tenantEmail import sendEmails
 
 '''
 class programOption:
@@ -104,35 +105,25 @@ class Program():
 
     def generateReciepts(self):
         try:
-            mo_year = input("Month [eg. January 2018]: ")
-            tenantList = batchGenerateReceipts(self.db, mo_year)
-            if len(tenantList) == 0:
-                print("\nAll receipts for {} have already been made\n"
-                      .format(mo_year.lower()))
-                return
-            tenantIDs = [n[0] for n in tenantList]
-            tenantNames = [n[1] for n in tenantList]
-            self.db.markRecMade(tenantIDs, mo_year)
-            printFriendlyNames = utils.concatStrings(tenantNames)
-            self.putSuccess("Generated {} receipts for {}"
-                            .format(mo_year.capitalize(), printFriendlyNames))
+            tenantNames = writeReceipts(self.db)
+            if len(tenantNames) == 0:
+                print("\nAll receipts have already been made\n")
+            else:
+                printFriendlyNames = utils.concatStrings(tenantNames)
+                self.putSuccess("Generated receipts for {}"
+                                .format(printFriendlyNames))
         except BaseException:
             self.putErr("Issue generating receipt.")
 
     def sendRent(self):
         try:
-            records = self.db.getSetReceiptsToSend()
-            people_emailed = []
-            if len(records) == 0:
+            peopleEmailed = sendEmails(self.db)
+            if len(peopleEmailed) == 0:
                 print("All receipts have aleady been sent")
-                return
-            for record in records:
-                e = tenantEmail(record)
-                e.send()
-                people_emailed.append(record.tenant_name)
-            printFriendlyNames = utils.concatStrings(people_emailed)
-            self.putSuccess(
-                "Sent new receipts to {}".format(printFriendlyNames))
+            else:
+                printFriendlyNames = utils.concatStrings(peopleEmailed)
+                self.putSuccess(
+                    "Sent new receipts to {}".format(printFriendlyNames))
         except BaseException:
             self.putErr("Wasn't able to send those emails")
 

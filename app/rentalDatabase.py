@@ -50,56 +50,5 @@ class rentalDatabase():
             self.c.execute(sql_query)
         self.conn.commit()
 
-    def markRecMade(self, user_ids, mo_year):
-        '''
-        takes in a list of user_id and marks them as paid
-        for a specific month
-        '''
-        date = utils.dateToTimeStamp(mo_year)
-        sql_query = """UPDATE rent
-                     SET receipt_issued=1
-                     WHERE user_id IN ({})
-                     AND date='{}'"""\
-                     .format(', '.join(
-                                    [str(uid) for uid in user_ids]
-                                 ), date)
-        self.c.execute(sql_query)
-        self.conn.commit()
-
-    def getRentRecords(self, sql_query):
-        tenants = self.conn.execute(sql_query)
-        rentRecords = []
-        RentRecord = namedtuple('RentRecord',
-                                ['tenant_id',
-                                 'tenant_name',
-                                 'tenant_email',
-                                 'room_id',
-                                 'date',
-                                 'room_price',
-                                 'rent_paid',
-                                 'receipt_issued'])
-        rentRecords = [RentRecord(*row) for row in tenants]
-        return rentRecords
-
-    def getSetEmails(self):
-        sql_query = "SELECT tenants.user_id, tenants.name, tenants.email,\
-                     rent.room_id, rent.date, rooms.price, rent.paid,\
-                     rent.receipt_issued\
-                     FROM rent\
-                     INNER JOIN tenants\
-                     ON tenants.user_id = rent.user_id\
-                     INNER JOIN rooms\
-                     ON rent.room_id = rooms.room_id\
-                     WHERE rent.receipt_issued=1 AND rent.paid=1\
-                     AND rent.receipt_sent=0"
-        recordsToSend = self.getRentRecords(sql_query)
-
-        sql_update_query = "UPDATE rent\
-                     SET receipt_sent=1\
-                     WHERE paid=1 AND receipt_issued=1"
-        self.c.execute(sql_update_query)
-        self.conn.commit()
-        return (recordsToSend)
-
     def __del__(self):
         self.conn.close()

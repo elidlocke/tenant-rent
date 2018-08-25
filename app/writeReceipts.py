@@ -103,7 +103,7 @@ class Receipt():
 
     def createPDF(self):
         """ Builds a story and creates a PDF File """
-        
+
         filename = "./app/receipts/receipt-{}-{}.pdf".format(
             self.tenantName.replace(" ", "-").lower(),
             self.month.replace(" ", "-").lower())
@@ -123,13 +123,6 @@ class Receipt():
             doc.build(story)
 
 
-'''
-refactor this to create receipts for any paid rent. Also, create cron
-job to call this function once a day ??
-select * from rent where paid = 1 and receipt_issued = 0
-'''
-
-
 def writeReceipts(db):
     sql_query = """SELECT tenants.name, rent.room_id, rent.date, rooms.price
                 FROM rent
@@ -141,15 +134,17 @@ def writeReceipts(db):
     with open(rental_fp, 'r') as f:
         rentalInfo = loads(f.read())
     f.close()
-    tenantReceiptList = []
+    tenantNames = []
     for record in records:
+        tenantNames.append(record[0])
         print(record)
         r = Receipt(rentalInfo,
                     room_id=record[1],
                     month=record[2],
                     amount=record[3],
-                    tenantName=[0])
+                    tenantName=record[0])
         r.createPDF()
-        '''
-        tenantReceiptList.append((record.tenant_id, record.tenant_name))
-        '''
+    update_sql = """UPDATE rent
+    SET receipt_issued = 1"""
+    db.updateQuery(update_sql)
+    return (tenantNames)
