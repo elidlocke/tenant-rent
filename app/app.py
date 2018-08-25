@@ -1,14 +1,17 @@
 #!/usr/bin/python3
-from collections import OrderedDict
-import manage_db
-from receipt_factory import batchGenerateReceipts
-from helper_functions import concatStrings
-from send_email import tenantEmail
+import app.utils as utils
+import app.rentalDatabase as rentalDatabase
 
+from collections import OrderedDict
+from app.tenantEmail import tenantEmail
+
+'''
 class programOption:
     def __init__(self, description, function=None):
         self.description = description.upper()
         self.function = function
+'''
+
 
 class Program():
     def __init__(self, database):
@@ -16,7 +19,7 @@ class Program():
 
     def putErr(self, message):
         print("\n ERROR: {} Please try again!\n".format(message))
-    
+
     def putSuccess(self, message):
         print("\n SUCCESS: {}\n".format(message))
 
@@ -26,43 +29,77 @@ class Program():
             email = input('Email [eg. mary@gmail.com]: ')
             self.db.addTenant(name, email)
             self.putSuccess("Added {} to tenants".format(name))
-        except:
+        except BaseException:
             self.putErr("Couldn't add that tenant.")
 
     def placeTenant(self):
         try:
-            print ("Select the ID of an available tenant: ")
-            self.db.printTenants()
+            print("Select the ID of an available tenant: ")
+            self.db.printQuery(
+                    """ SELECT user_id, name email
+                    FROM tenants """)
             user_id = input("user_id to place [eg. 1]: ")
-            term  = input("Term [eg. Fall 2018]: ")
+            term = input("Term [eg. Fall 2018]: ")
+            timestamp = utils.dateToTimeStamp(term)
             name = db.getTenantNameById(user_id)
-            print ("Which room are you placing {} in? ".format(name))
-            self.db.printAvailableRooms(term)
+            print("Which room are you placing {} in? ".format(name))
+            rooms = self.db.getQuery(
+                    """ SELECT rooms.room_id
+                    FROM rooms
+                    WHERE rooms.rentable = 1
+                    AND rooms.room_id not in (
+                        SELECT room_id from rent
+                        WHERE date='{}'""").format(timestamp)
+            print(', '.join(rooms))
             room_id = input("Room letter [eg. A]: ")
             self.db.placeTenant(user_id, room_id, term)
-            self.putSuccess("Placed {} in {} for the {} term."\
-                    .format(name, room_id, term))
-        except:
+            self.putSuccess("Placed {} in {} for the {} term."
+                            .format(name, room_id, term))
+        except BaseException:
             self.putErr("Wasn't able to place that tenant there.")
 
     def listTenants(self):
         try:
             term = input("Term [eg. Fall 2018]: ")
-            print ("Here are all the tenants for that term: \n")
-            self.db.printTenantsByMonth(term)
-        except:
+            timestamp = utils.dateToTimeStamp(term)
+            print("Here are all the tenants for that term: \n")
+            self.db.printQuery(
+                """ SELECT tenants.user_id, tenants.name,
+                rent.room_id, rent.paid, tenants.email
+                FROM rent
+                INNER JOIN tenants
+                ON tenants.user_id = rent.user_id
+                WHERE rent.date='{}'
+                ORDER BY rent.room_id
+                """).format(timestamp)
+        except BaseException:
             self.putErr("Wasn't able to find any tenants to list")
 
     def recordRent(self):
         try:
             month = input("Month [eg. January 2018]: ")
-            print ("Here are all the tenants for that month: \n")
-            self.db.printTenantsByMonth(month)
+            print("Here are all the tenants for that month: \n")
+            timestamp = utils.dateToTimeStamp(month)
+            self.db.printQuery(
+                """ SELECT tenants.user_id, tenants.name,
+                rent.room_id, rent.paid
+                FROM rent
+                INNER JOIN tenants
+                ON tenants.user_id = rent.user_id
+                WHERE rent.date='{}'
+                ORDER BY rent.room_id
+                """).format(timestamp)
             user_id = input("user_id to mark as paid [eg. 1]: ")
             name = db.getTenantNameById(user_id)
-            self.db.markPaid(user_id, month)
-            self.putSuccess("Recorded {} as paid for {}".format(name, month))
-        except:
+            update_sql = """UPDATE rent
+                              SET paid = 1
+                              WHERE user_id={}
+                              AND date='{}'"""\
+                           .format(user_id, timestamp)
+            self.db.updateQuery(update_sql)
+            self.putSuccess("Recorded {} as paid for {}"
+                            .format(name, month))
+        except BaseException:
             self.putErr("Didn't properly record that payment.")
 
     def generateReciepts(self):
@@ -70,16 +107,16 @@ class Program():
             mo_year = input("Month [eg. January 2018]: ")
             tenantList = batchGenerateReceipts(self.db, mo_year)
             if len(tenantList) == 0:
-                print("\nAll receipts for {} have already been made\n"\
-                        .format(mo_year.lower()))
+                print("\nAll receipts for {} have already been made\n"
+                      .format(mo_year.lower()))
                 return
             tenantIDs = [n[0] for n in tenantList]
             tenantNames = [n[1] for n in tenantList]
             self.db.markRecMade(tenantIDs, mo_year)
-            printFriendlyNames = concatStrings(tenantNames)
-            self.putSuccess("Generated {} receipts for {}"\
-                    .format(mo_year.capitalize(), printFriendlyNames))
-        except:
+            printFriendlyNames = utils.concatStrings(tenantNames)
+            self.putSuccess("Generated {} receipts for {}"
+                            .format(mo_year.capitalize(), printFriendlyNames))
+        except BaseException:
             self.putErr("Issue generating receipt.")
 
     def sendRent(self):
@@ -93,11 +130,11 @@ class Program():
                 e = tenantEmail(record)
                 e.send()
                 people_emailed.append(record.tenant_name)
-            printFriendlyNames = concatStrings(people_emailed)
-            self.putSuccess("Sent new receipts to {}".format(printFriendlyNames))
-        except:
+            printFriendlyNames = utils.concatStrings(people_emailed)
+            self.putSuccess(
+                "Sent new receipts to {}".format(printFriendlyNames))
+        except BaseException:
             self.putErr("Wasn't able to send those emails")
-
 
     '''
     Move this to one function outside of class that is 'run program'
@@ -119,22 +156,19 @@ class Program():
         programOptions = self.createProgramOptions()
         while (1):
             print("*********************************\n" +
-                  "*    QUARRIE HOUSE RENT TIME    *\n" + 
+                  "*    QUARRIE HOUSE RENT TIME    *\n" +
                   "*********************************\n")
             for key in programOptions:
                 print("{} - {}".format(key, programOptions[key].description))
             selection = input('choose an option: ')
             if programOptions[selection].description == "QUIT":
                 print("You chose to quit the program. Goodbye.")
-                break ;
+                break
             else:
                 programOptions[selection].function()
 
-'''
-this is the only main i am allowed to keep !!
-'''
 
 if __name__ == "__main__":
-    db = manage_db.rentalDatabase()
+    db = rentalDatabase()
     p = Program(db)
     p.runProgram()

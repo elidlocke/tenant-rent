@@ -19,10 +19,12 @@ class Receipt():
 
     def __init__(self,
                  rentalInfo,
+                 room_id,
                  month,
                  amount,
                  tenantName):
         self.rentalInfo = rentalInfo
+        self.room_id = room_id
         self.month = month
         self.amount = amount
         self.tenantName = tenantName
@@ -127,18 +129,27 @@ job to call this function once a day ??
 select * from rent where paid = 1 and receipt_issued = 0
 '''
 
-'''
-def writeReceipts(db, mo_year):
-    records = db.getOccupiedStatusByMonth(mo_year)
-    rentalInfo = loads('app/resources/rental.json')
+
+def writeReceipts(db):
+    sql_query = """SELECT tenants.name, rent.room_id, rent.date, rooms.price
+                FROM rent
+                INNER JOIN tenants ON tenants.user_id = rent.user_id
+                INNER JOIN rooms ON rent.room_id = rooms.room_id
+                WHERE rent.paid = 1 AND rent.receipt_issued = 0"""
+    records = db.getQuery(sql_query)
+    rental_fp = "app/resources/rental.json"
+    with open(rental_fp, 'r') as f:
+        rentalInfo = loads(f.read())
+    f.close()
     tenantReceiptList = []
     for record in records:
-        if record.rent_paid and not record.receipt_issued:
-            r = Receipt(rentalInfo,
-                        mo_year,
-                        record.room_price,
-                        record.tenant_name)
-            r.createPDF()
-            tenantReceiptList.append((record.tenant_id, record.tenant_name))
-    return (tenantReceiptList)
-'''
+        print(record)
+        r = Receipt(rentalInfo,
+                    room_id=record[1],
+                    month=record[2],
+                    amount=record[3],
+                    tenantName=[0])
+        r.createPDF()
+        '''
+        tenantReceiptList.append((record.tenant_id, record.tenant_name))
+        '''
