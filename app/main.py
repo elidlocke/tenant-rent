@@ -59,7 +59,7 @@ class Program():
             month = input("Month [eg. January 2018]: ")
             print("Here are all the tenants for that month: \n")
             options = self.db.printTenantsRentStatus(month)
-            if options is None:
+            if len(options) == 0:
                 raise BaseException()
             user_id = input("user_id to mark as paid [eg. 1]: ")
             self.db.recordRentPayment(user_id, month)
@@ -103,7 +103,7 @@ def runProgram(program):
     programOptions = OrderedDict({
         '1': ("add a new tenant", program.addTenant),
         '2': ("place a tenant", program.placeTenant),
-        '3': ("list tenants", program.listTenants),
+        '3': ("list tenants by term", program.listTenants),
         '4': ("record rent payments", program.recordRent),
         '5': ("generate rent receipts", program.generateReciepts),
         '6': ("send rent receipts", program.sendRent),
