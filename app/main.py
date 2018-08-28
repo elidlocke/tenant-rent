@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 import sys
 
-from .utility import dateToTimeStamp, concatStrings
+from email.utils import parseaddr
+from .utility import concatStrings
 from collections import OrderedDict
 from .rentalDatabase import rentalDatabase
 from .writeReceipts import writeReceipts
@@ -22,6 +23,8 @@ class Program():
         try:
             name = input('Name [eg. Mary Smith]: ')
             email = input('Email [eg. mary@gmail.com]: ')
+            if parseaddr(email) == ('', ''):
+                raise BaseException()
             self.db.addTenant(name, email)
             self.putSuccess("Added {} to tenants".format(name))
         except BaseException:
@@ -30,22 +33,12 @@ class Program():
     def placeTenant(self):
         try:
             print("Select the ID of an available tenant: ")
-            self.db.printQuery(
-                    """ SELECT user_id, name email
-                    FROM tenants """)
+            self.db.printTenantList()
             user_id = input("user_id to place [eg. 1]: ")
             term = input("Term [eg. Fall 2018]: ")
-            timestamp = dateToTimeStamp(term)
             name = db.getTenantNameById(user_id)
             print("Which room are you placing {} in? ".format(name))
-            rooms = self.db.getQuery(
-                    """ SELECT rooms.room_id
-                    FROM rooms
-                    WHERE rooms.rentable = 1
-                    AND rooms.room_id not in (
-                        SELECT room_id from rent
-                        WHERE date='{}')""".format(timestamp))
-            print(', '.join([item[0] for item in rooms]))
+            self.db.printAvailableRooms(term)
             room_id = input("Room letter [eg. A]: ")
             self.db.placeTenant(user_id, room_id, term)
             self.putSuccess("Placed {} in {} for the {} term."
@@ -56,17 +49,8 @@ class Program():
     def listTenants(self):
         try:
             term = input("Term [eg. Fall 2018]: ")
-            timestamp = dateToTimeStamp(term)
             print("Here are all the tenants for that term: \n")
-            self.db.printQuery(
-                """ SELECT tenants.user_id, tenants.name,
-                rent.room_id, tenants.email
-                FROM rent
-                INNER JOIN tenants
-                ON tenants.user_id = rent.user_id
-                WHERE rent.date='{}'
-                ORDER BY rent.room_id
-                """.format(timestamp))
+            self.db.printTenantsByTerm(term)
         except BaseException:
             self.putErr("Wasn't able to find any tenants to list")
 
@@ -74,26 +58,12 @@ class Program():
         try:
             month = input("Month [eg. January 2018]: ")
             print("Here are all the tenants for that month: \n")
-            timestamp = dateToTimeStamp(month)
-            options = self.db.printQuery(
-                """ SELECT tenants.user_id, tenants.name,
-                rent.room_id, rent.paid
-                FROM rent
-                INNER JOIN tenants
-                ON tenants.user_id = rent.user_id
-                WHERE rent.date='{}'
-                ORDER BY rent.room_id
-                """.format(timestamp))
+            options = self.db.printTenantsRentStatus(month)
             if options.empty:
                 raise BaseException()
             user_id = input("user_id to mark as paid [eg. 1]: ")
+            self.db.recordRentPayment(user_id, month)
             name = db.getTenantNameById(user_id)
-            update_sql = """UPDATE rent
-                              SET paid = 1
-                              WHERE user_id={}
-                              AND date='{}'"""\
-                           .format(user_id, timestamp)
-            self.db.updateQuery(update_sql)
             self.putSuccess("Recorded {} as paid for {}"
                             .format(name, month))
         except BaseException:
@@ -146,10 +116,10 @@ def runProgram(program):
         for key in programOptions:
             print("{} - {}".format(key, programOptions[key][0]))
         selection = input('choose an option: ')
-        #try:
-        programOptions[selection][1]()
-        #except BaseException:
-        #    print("\nEnter a valid number\n")
+        try:
+            programOptions[selection][1]()
+        except BaseException:
+            print("\nEnter a valid number\n")
 
 
 if __name__ == "__main__":
