@@ -59,7 +59,7 @@ class Program():
             month = input("Month [eg. January 2018]: ")
             print("Here are all the tenants for that month: \n")
             options = self.db.printTenantsRentStatus(month)
-            if options.empty:
+            if options is None:
                 raise BaseException()
             user_id = input("user_id to mark as paid [eg. 1]: ")
             self.db.recordRentPayment(user_id, month)
@@ -116,9 +116,9 @@ def runProgram(program):
         for key in programOptions:
             print("{} - {}".format(key, programOptions[key][0]))
         selection = input('choose an option: ')
-        try:
+        if selection.isdigit() and 1 <= int(selection) <= 7:
             programOptions[selection][1]()
-        except BaseException:
+        else:
             print("\nEnter a valid number\n")
 
 
