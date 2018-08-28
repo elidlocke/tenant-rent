@@ -14,16 +14,16 @@ class Program():
         self.db = database
 
     def putErr(self, message):
-        print("\n ERROR: {} Please try again!\n".format(message))
+        print("\nERROR: {} Please try again!\n".format(message))
 
     def putSuccess(self, message):
-        print("\n SUCCESS: {}\n".format(message))
+        print("\nSUCCESS: {}\n".format(message))
 
     def addTenant(self):
         try:
-            name = input('Name [eg. Mary Smith]: ')
+            name = input('Name [eg. Mary Smith]: ').title()
             email = input('Email [eg. mary@gmail.com]: ')
-            if parseaddr(email) == ('', ''):
+            if '@' not in parseaddr(email)[1]:
                 raise BaseException()
             self.db.addTenant(name, email)
             self.putSuccess("Added {} to tenants".format(name))
@@ -49,7 +49,7 @@ class Program():
     def listTenants(self):
         try:
             term = input("Term [eg. Fall 2018]: ")
-            print("Here are all the tenants for that term: \n")
+            print("\nHere are all the tenants for that term: \n")
             self.db.printTenantsByTerm(term)
         except BaseException:
             self.putErr("Wasn't able to find any tenants to list")
@@ -57,7 +57,7 @@ class Program():
     def recordRent(self):
         try:
             month = input("Month [eg. January 2018]: ")
-            print("Here are all the tenants for that month: \n")
+            print("\nHere are all the tenants for that month: \n")
             options = self.db.printTenantsRentStatus(month)
             if len(options) == 0:
                 raise BaseException()
@@ -85,7 +85,7 @@ class Program():
         try:
             peopleEmailed = sendEmails(self.db)
             if len(peopleEmailed) == 0:
-                print("All receipts have aleady been sent")
+                print("\nAll receipts have aleady been sent\n")
             else:
                 printFriendlyNames = concatStrings(peopleEmailed)
                 self.putSuccess(
@@ -95,7 +95,7 @@ class Program():
                         " Did you set the env variables?")
 
     def exit(self):
-        print("You chose to quit the program. Goodbye.")
+        print("\nYou chose to quit the program. Goodbye.")
         sys.exit()
 
 
